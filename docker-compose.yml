@@ -1,0 +1,41 @@
+version: "3.9"
+services:
+  reverse:
+    container_name: reverseproxy
+    hostname: reverseproxy
+    image: nginx:1.23.2-alpine
+    ports:
+      - 80:80
+      - 443:443
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - VIRTUAL_HOST=proxy.example.com
+    volumes:
+      - ./conf:/etc/nginx/conf.d:rw
+      - ./includes/:/etc/nginx/includes/:ro
+    deploy:
+      replicas: 1
+      endpoint_mode: vip
+      placement:
+        max_replicas_per_node: 1
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 1G
+    networks:
+      net:
+        ipv4_address: 12.5.0.2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+networks:
+  net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 12.5.0.0/16
+          gateway: 12.5.0.1
